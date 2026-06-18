@@ -1,0 +1,6 @@
+{
+  "name": "Tic-Tac-Toe",
+  "description": "A clean, modern Tic-Tac-Toe game with a custom AI opponent (Minimax), sound effects, scoring, name customization, and a sleek dark/light theme.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
