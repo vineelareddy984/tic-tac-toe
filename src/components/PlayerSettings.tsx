@@ -1,142 +1,143 @@
-import { ChangeEvent } from 'react';
+import React from 'react';
 import { GameMode, AIDifficulty, PlayerNames } from '../types';
-import { User, Cpu, ChevronDown } from 'lucide-react';
-import { playClickSound } from '../utils/sound';
+import { User, Cpu, Sparkles, RefreshCw } from 'lucide-react';
+import { sound } from '../utils/sound';
 
 interface PlayerSettingsProps {
   gameMode: GameMode;
+  onModeChange: (mode: GameMode) => void;
   aiDifficulty: AIDifficulty;
+  onDifficultyChange: (diff: AIDifficulty) => void;
   names: PlayerNames;
-  setGameMode: (mode: GameMode) => void;
-  setAIDifficulty: (diff: AIDifficulty) => void;
-  setNames: (names: PlayerNames) => void;
-  onResetScores: () => void;
+  onNameChange: (names: PlayerNames) => void;
+  onResetMatch: () => void;
 }
 
-export function PlayerSettings({
+export const PlayerSettings: React.FC<PlayerSettingsProps> = ({
   gameMode,
+  onModeChange,
   aiDifficulty,
+  onDifficultyChange,
   names,
-  setGameMode,
-  setAIDifficulty,
-  setNames,
-  onResetScores,
-}: PlayerSettingsProps) {
-  const handleModeChange = (mode: GameMode) => {
-    playClickSound();
-    setGameMode(mode);
+  onNameChange,
+  onResetMatch
+}) => {
+
+  const handleModeToggle = (mode: GameMode) => {
+    sound.playClick();
+    onModeChange(mode);
   };
 
-  const handleDifficultyChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    playClickSound();
-    setAIDifficulty(e.target.value as AIDifficulty);
-  };
-
-  const handleNameChange = (player: 'X' | 'O', value: string) => {
-    setNames({
-      ...names,
-      [player]: value.slice(0, 14), // Limit names to 14 chars
-    });
+  const handleDifficultyToggle = (diff: AIDifficulty) => {
+    sound.playClick();
+    onDifficultyChange(diff);
   };
 
   return (
-    <div className="flex flex-col gap-4 p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm transition-all">
-      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-widest text-center">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/80 rounded-3xl p-5 w-full flex flex-col gap-4">
+      <h3 className="text-[11px] font-black tracking-widest text-zinc-400 dark:text-zinc-500 uppercase text-center">
         Game Setup
       </h3>
 
-      {/* Mode Selector */}
-      <div className="grid grid-cols-2 gap-2 bg-gray-50 dark:bg-zinc-950 p-1.5 rounded-xl border border-gray-100 dark:border-zinc-900">
+      <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-900/50">
         <button
-          onClick={() => handleModeChange('local')}
-          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+          id="btn-mode-local"
+          type="button"
+          onClick={() => handleModeToggle('local')}
+          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             gameMode === 'local'
-              ? 'bg-white dark:bg-zinc-800 text-sky-600 dark:text-sky-400 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? 'bg-white dark:bg-zinc-900 shadow-xs border border-zinc-100 dark:border-zinc-800 text-sky-600 dark:text-sky-400'
+              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700'
           }`}
         >
-          <User className="h-3.5 w-3.5" />
+          <User size={13} />
           Local Play
         </button>
         <button
-          onClick={() => handleModeChange('ai')}
-          className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+          id="btn-mode-ai"
+          type="button"
+          onClick={() => handleModeToggle('ai')}
+          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             gameMode === 'ai'
-              ? 'bg-white dark:bg-zinc-800 text-amber-600 dark:text-amber-400 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? 'bg-white dark:bg-zinc-900 shadow-xs border border-zinc-100 dark:border-zinc-800 text-amber-600 dark:text-amber-400'
+              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700'
           }`}
         >
-          <Cpu className="h-3.5 w-3.5" />
+          <Cpu size={13} />
           vs AI Bot
         </button>
       </div>
 
-      {/* Contextual Fields */}
-      <div className="space-y-3.5">
-        {/* Helper Name Input Player X */}
+      <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-sky-500"></span>
-            Player X Name
+          <label className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span> Player X
           </label>
           <input
+            id="input-name-x"
             type="text"
             value={names.X}
-            onChange={(e) => handleNameChange('X', e.target.value)}
-            className="w-full text-sm font-medium px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500/30 transition-all shadow-inner"
+            onChange={(e) => onNameChange({ ...names, X: e.target.value.slice(0, 14) })}
+            className="w-full px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-900 rounded-xl focus:border-sky-500/50 focus:outline-hidden dark:text-zinc-200"
             placeholder="Name for X"
           />
         </div>
 
-        {/* Player O / AI Config */}
         {gameMode === 'local' ? (
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              Player O Name
+            <label className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Player O
             </label>
             <input
+              id="input-name-o"
               type="text"
               value={names.O}
-              onChange={(e) => handleNameChange('O', e.target.value)}
-              className="w-full text-sm font-medium px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all shadow-inner"
+              onChange={(e) => onNameChange({ ...names, O: e.target.value.slice(0, 14) })}
+              className="w-full px-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-900 rounded-xl focus:border-amber-500/50 focus:outline-hidden dark:text-zinc-200"
               placeholder="Name for O"
             />
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
-              <Cpu className="h-3 w-3 text-amber-500" />
-              AI Bot Difficulty
+            <label className="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase flex items-center gap-1">
+              <Cpu size={9} className="text-amber-500" /> AI Bot Level
             </label>
-            <div className="relative">
-              <select
-                value={aiDifficulty}
-                onChange={handleDifficultyChange}
-                className="w-full text-sm font-medium pl-3 pr-8 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all appearance-none cursor-pointer shadow-inner"
-              >
-                <option value="easy">Easy (Random moves)</option>
-                <option value="medium">Medium (Smart blocks/wins)</option>
-                <option value="hard">Hard (Unbeatable Minimax)</option>
-              </select>
-              <div className="absolute top-1/2 right-3 -translate-y-1/2 pointer-events-none text-gray-400">
-                <ChevronDown className="h-4 w-4" />
-              </div>
+            <div className="grid grid-cols-3 gap-1 p-0.5 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-900/50">
+              {(['easy', 'medium', 'hard'] as AIDifficulty[]).map((level) => (
+                <button
+                  id={`btn-diff-${level}`}
+                  key={level}
+                  type="button"
+                  onClick={() => handleDifficultyToggle(level)}
+                  className={`py-1 rounded-lg text-[10px] font-bold transition-all capitalize cursor-pointer ${
+                    aiDifficulty === level
+                      ? 'bg-amber-500 text-white shadow-xs'
+                      : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-600'
+                  }`}
+                >
+                  {level === 'hard' ? (
+                    <span className="flex items-center justify-center gap-0.5">
+                      <Sparkles size={8} /> Hard
+                    </span>
+                  ) : level}
+                </button>
+              ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* Score Reset Button */}
       <button
+        id="btn-reset-scores"
         onClick={() => {
-          playClickSound();
-          onResetScores();
+          sound.playClick();
+          onResetMatch();
         }}
-        className="w-full mt-1.5 py-2 px-3 text-xs font-bold text-rose-500 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100/30 dark:border-rose-900/40 rounded-xl hover:bg-rose-100/50 dark:hover:bg-rose-950/40 active:scale-[0.98] transition-all cursor-pointer"
+        className="w-full text-center flex items-center justify-center gap-1 py-2 rounded-xl text-[10px] font-bold text-red-500 bg-red-50/50 hover:bg-red-50 dark:bg-red-950/10 dark:hover:bg-red-950/20 border border-red-100/50 dark:border-red-900/20 transition-all cursor-pointer"
       >
+        <RefreshCw size={10} />
         Reset Match Scores
       </button>
     </div>
   );
-}
+};

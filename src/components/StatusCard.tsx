@@ -1,103 +1,97 @@
-import { Symbol, GameMode, PlayerNames } from '../types';
-import { RefreshCw, Trophy, AlertCircle } from 'lucide-react';
-import { playClickSound } from '../utils/sound';
+import React from 'react';
+import { Symbol, PlayerNames, GameMode } from '../types';
+import { Trophy, HelpCircle, RefreshCw } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface StatusCardProps {
   currentTurn: Symbol;
-  winner: Symbol | null;
-  isDraw: boolean;
   names: PlayerNames;
   gameMode: GameMode;
+  isGameOver: boolean;
+  winner: Symbol | null;
+  isDraw: boolean;
   onReset: () => void;
 }
 
-export function StatusCard({
+export const StatusCard: React.FC<StatusCardProps> = ({
   currentTurn,
-  winner,
-  isDraw,
   names,
   gameMode,
-  onReset,
-}: StatusCardProps) {
-  const isGameOver = !!winner || isDraw;
-
-  // Render names
-  const getPlayerName = (sym: Symbol) => {
-    if (sym === 'X') return names.X || 'Player X';
-    if (sym === 'O') {
-      return gameMode === 'ai' ? 'AI Bot' : names.O || 'Player O';
-    }
-    return '';
-  };
+  isGameOver,
+  winner,
+  isDraw,
+  onReset
+}) => {
+  if (!isGameOver) {
+    const activeName = currentTurn === 'X' ? names.X : (gameMode === 'ai' ? 'AI Bot' : names.O);
+    return (
+      <div className="flex justify-center w-full">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800/60 rounded-full px-5 py-2.5 flex items-center gap-3 shadow-xs">
+          <span className="text-[10px] font-black tracking-widest text-zinc-400 dark:text-zinc-500 uppercase">
+            Turn
+          </span>
+          <div className={`px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 ${
+            currentTurn === 'X'
+              ? 'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400'
+              : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400'
+          }`}>
+            <span>{currentTurn}</span>
+            <span className="font-semibold block truncate max-w-28">{activeName}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full flex flex-col items-center gap-4">
-      {/* Turn indicator / game-over banner */}
-      <div className="w-full text-center">
-        {!isGameOver ? (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 shadow-sm transition-all animate-none">
-            <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-              Turn
-            </span>
-            <div
-              className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-bold text-sm ${
-                currentTurn === 'X'
-                  ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400'
-                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
-              }`}
-            >
-              <span className="text-sm font-black">{currentTurn}</span>
-              <span className="font-semibold tracking-wide truncate max-w-[100px]">
-                {getPlayerName(currentTurn)}
-              </span>
-            </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className={`w-full flex flex-col items-center gap-3.5 border rounded-3xl p-6 text-center ${
+        winner
+          ? 'bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-950/30 text-emerald-800 dark:text-emerald-400'
+          : 'bg-zinc-50/80 dark:bg-zinc-900/40 border-zinc-150 dark:border-zinc-800/40 text-zinc-700 dark:text-zinc-300'
+      }`}
+    >
+      {winner ? (
+        <>
+          <div className="p-3 bg-emerald-500/10 rounded-full text-emerald-500">
+            <Trophy size={28} />
           </div>
-        ) : (
-          <div className="w-full overflow-hidden transition-all duration-300">
-            {winner ? (
-              <div className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 animate-bounce">
-                <div className="relative">
-                  <Trophy className="h-10 w-10 text-emerald-500 dark:text-emerald-400" />
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                  </span>
-                </div>
-                <h4 className="text-lg font-black text-emerald-800 dark:text-emerald-300 tracking-tight">
-                  {getPlayerName(winner)} Wins!
-                </h4>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                  Matches are highlighted on the board below
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-800/60 transition-all">
-                <AlertCircle className="h-10 w-10 text-zinc-500" />
-                <h4 className="text-lg font-black text-zinc-700 dark:text-zinc-300 tracking-tight">
-                  It's a Draw!
-                </h4>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                  Both players played perfectly.
-                </p>
-              </div>
-            )}
+          <div>
+            <h2 className="text-lg font-black tracking-tight mb-1">
+              {winner === 'X' ? names.X : (gameMode === 'ai' ? 'AI Bot' : names.O)} Wins!
+            </h2>
+            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/60 font-medium">
+              Winning alignment successfully locked on the board.
+            </p>
           </div>
-        )}
-      </div>
+        </>
+      ) : isDraw ? (
+        <>
+          <div className="p-3 bg-zinc-500/10 rounded-full text-zinc-500">
+            <HelpCircle size={28} />
+          </div>
+          <div>
+            <h2 className="text-lg font-black tracking-tight mb-1">
+              It's a Draw!
+            </h2>
+            <p className="text-xs text-zinc-500/70 dark:text-zinc-400/60 font-medium">
+              Both contestants built solid block lines perfectly.
+            </p>
+          </div>
+        </>
+      ) : null}
 
-      {/* Play Again Trigger */}
-      {isGameOver && (
-        <button
-          onClick={() => {
-            playClickSound();
-            onReset();
-          }}
-          className="flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 dark:from-sky-600 dark:to-indigo-700 text-white font-extrabold text-sm shadow-md hover:brightness-105 active:scale-98 transition-all cursor-pointer group"
-        >
-          <RefreshCw className="h-4 w-4 transition-transform group-hover:rotate-180 duration-500" />
-          Play Another Match
-        </button>
-      )}
-    </div>
+      <button
+        id="btn-play-again"
+        type="button"
+        onClick={onReset}
+        className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-all cursor-pointer mt-1"
+      >
+        <RefreshCw size={13} />
+        Play Another Match
+      </button>
+    </motion.div>
   );
-}
+};

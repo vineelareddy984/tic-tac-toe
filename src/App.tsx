@@ -1,263 +1,211 @@
-import { useState, useEffect } from 'react';
-import { GameMode, AIDifficulty, PlayerNames, ScoreState, Symbol } from './types';
+import React from 'react';
+import { Symbol, GameMode, AIDifficulty, PlayerNames, ScoreState } from './types';
 import { ThemeToggle } from './components/ThemeToggle';
 import { ScoreBoard } from './components/ScoreBoard';
 import { PlayerSettings } from './components/PlayerSettings';
-import { GameBoard } from './components/GameBoard';
 import { StatusCard } from './components/StatusCard';
+import { GameBoard } from './components/GameBoard';
 import { HtmlExporter } from './components/HtmlExporter';
 import { checkGameState, getAIMove } from './utils/ai';
-import {
-  playMoveX,
-  playMoveO,
-  playWinSound,
-  playDrawSound,
-  playClickSound,
-  toggleMute as libToggleMute,
-  getMuteState,
-} from './utils/sound';
-import { Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { sound } from './utils/sound';
+import { Star } from 'lucide-react';
 
 export default function App() {
-  // Game states
-  const [board, setBoard] = useState<(Symbol | null)[]>(Array(9).fill(null));
-  const [currentTurn, setCurrentTurn] = useState<Symbol>('X');
-  const [gameMode, setGameMode] = useState<GameMode>('local');
-  const [aiDifficulty, setAIDifficulty] = useState<AIDifficulty>('hard');
-  const [isAiThinking, setIsAiThinking] = useState(false);
-  
-  const [names, setNames] = useState<PlayerNames>({
+  const [darkMode, setDarkMode] = React.useState<boolean>(false);
+  const [board, setBoard] = React.useState<(Symbol | null)[]>(Array(9).fill(null));
+  const [currentTurn, setCurrentTurn] = React.useState<Symbol>('X');
+  const [gameMode, setGameMode] = React.useState<GameMode>('local');
+  const [aiDifficulty, setAiDifficulty] = React.useState<AIDifficulty>('hard');
+  const [isAiThinking, setIsAiThinking] = React.useState<boolean>(false);
+  const [isMuted, setIsMuted] = React.useState<boolean>(false);
+
+  const [names, setNames] = React.useState<PlayerNames>({
     X: 'Player X',
-    O: 'Player O',
+    O: 'Player O'
   });
 
-  const [scores, setScores] = useState<ScoreState>({
+  const [scores, setScores] = React.useState<ScoreState>({
     X: 0,
     O: 0,
-    draws: 0,
+    draws: 0
   });
 
-  // Sound and dark mode
-  const [isMuted, setIsMuted] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  // Load and apply dark theme on boot
-  useEffect(() => {
-    const root = window.document.documentElement;
+  // Sync dark mode style on document body
+  React.useEffect(() => {
     if (darkMode) {
-      root.classList.add('dark');
+      document.documentElement.classList.add('dark');
     } else {
-      root.classList.remove('dark');
+      document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
-  // Handle game mode or settings changes -> resets match board to be clean
-  useEffect(() => {
-    handleReset();
-  }, [gameMode, aiDifficulty]);
+  // Sync inline sound mute
+  React.useEffect(() => {
+    sound.setMuted(isMuted);
+  }, [isMuted]);
 
-  // Listen to AI turns and resolve them automatically
-  useEffect(() => {
-    if (gameMode === 'ai' && currentTurn === 'O') {
-      const state = checkGameState(board);
-      if (state.winner || state.isDraw) return; // Game already ended
-
-      setIsAiThinking(true);
-      const timer = setTimeout(() => {
-        const move = getAIMove(board, 'O', aiDifficulty);
-        if (move !== -1) {
-          const nextBoard = [...board];
-          nextBoard[move] = 'O';
-          setBoard(nextBoard);
-          playMoveO();
-
-          // Check outcome
-          const outcome = checkGameState(nextBoard);
-          if (outcome.winner) {
-            setScores((prev) => ({ ...prev, O: prev.O + 1 }));
-            playWinSound();
-          } else if (outcome.isDraw) {
-            setScores((prev) => ({ ...prev, draws: prev.draws + 1 }));
-            playDrawSound();
-          } else {
-            setCurrentTurn('X');
-          }
-        }
-        setIsAiThinking(false);
-      }, 500); // 500ms delay for visual pacing
-
-      return () => clearTimeout(timer);
-    }
-  }, [board, currentTurn, gameMode, aiDifficulty]);
-
-  // Click on a core grid cell
-  const handleCellClick = (index: number) => {
-    if (board[index] !== null || (gameMode === 'ai' && currentTurn === 'O') || isAiThinking) {
-      return;
-    }
-
-    const nextBoard = [...board];
-    const originalTurn = currentTurn;
-    nextBoard[index] = originalTurn;
-    setBoard(nextBoard);
-
-    if (originalTurn === 'X') {
-      playMoveX();
-    } else {
-      playMoveO();
-    }
-
-    // Check game outcomes
-    const outcome = checkGameState(nextBoard);
-    if (outcome.winner) {
-      setScores((prev) => ({
-        ...prev,
-        [outcome.winner as Symbol]: prev[outcome.winner as Symbol] + 1,
-      }));
-      playWinSound();
-    } else if (outcome.isDraw) {
-      setScores((prev) => ({ ...prev, draws: prev.draws + 1 }));
-      playDrawSound();
-    } else {
-      setCurrentTurn(originalTurn === 'X' ? 'O' : 'X');
-    }
-  };
-
-  // Reset the active board for a new match
+  // Reset board on configuration change
   const handleReset = () => {
     setBoard(Array(9).fill(null));
     setCurrentTurn('X');
     setIsAiThinking(false);
   };
 
-  // Reset the long-term score scoreboard counters
   const handleResetScores = () => {
     setScores({ X: 0, O: 0, draws: 0 });
     handleReset();
   };
 
-  const handleToggleMute = () => {
-    const nextMuted = libToggleMute();
-    setIsMuted(nextMuted);
-    if (!nextMuted) playClickSound();
+  // AI loop
+  React.useEffect(() => {
+    if (gameMode === 'ai' && currentTurn === 'O') {
+      const state = checkGameState(board);
+      if (!state.winner && !state.isDraw) {
+        setIsAiThinking(true);
+
+        const timer = setTimeout(() => {
+          const aiMoveIdx = getAIMove(board, 'O', aiDifficulty);
+          if (aiMoveIdx !== -1) {
+            const nextBoard = [...board];
+            nextBoard[aiMoveIdx] = 'O';
+            setBoard(nextBoard);
+            sound.playMoveO();
+
+            const nextState = checkGameState(nextBoard);
+            if (nextState.winner) {
+              setScores(prev => ({ ...prev, O: prev.O + 1 }));
+              sound.playWin();
+            } else if (nextState.isDraw) {
+              setScores(prev => ({ ...prev, draws: prev.draws + 1 }));
+              sound.playDraw();
+            } else {
+              setCurrentTurn('X');
+            }
+          }
+          setIsAiThinking(false);
+        }, 550); // Fluid delay
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [board, currentTurn, gameMode, aiDifficulty]);
+
+  const handleCellClick = (idx: number) => {
+    if (board[idx] || (gameMode === 'ai' && currentTurn === 'O') || isAiThinking) return;
+
+    const nextBoard = [...board];
+    nextBoard[idx] = currentTurn;
+    setBoard(nextBoard);
+
+    if (currentTurn === 'X') {
+      sound.playMoveX();
+    } else {
+      sound.playMoveO();
+    }
+
+    const state = checkGameState(nextBoard);
+    if (state.winner) {
+      if (state.winner === 'X') {
+        setScores(prev => ({ ...prev, X: prev.X + 1 }));
+      } else {
+        setScores(prev => ({ ...prev, O: prev.O + 1 }));
+      }
+      sound.playWin();
+    } else if (state.isDraw) {
+      setScores(prev => ({ ...prev, draws: prev.draws + 1 }));
+      sound.playDraw();
+    } else {
+      setCurrentTurn(currentTurn === 'X' ? 'O' : 'X');
+    }
   };
 
-  const { winner, line: winningLine, isDraw } = checkGameState(board);
+  const gameState = checkGameState(board);
+  const isGameOver = !!gameState.winner || gameState.isDraw;
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 flex flex-col transition-colors duration-300">
-      {/* Top Navbar */}
-      <nav id="app-nav" className="w-full border-b border-gray-100 dark:border-zinc-900 bg-white dark:bg-zinc-900/60 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-sm font-black text-sm">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#09090b] text-slate-800 dark:text-zinc-100 transition-colors duration-200">
+      <div className="max-w-2xl mx-auto flex flex-col min-h-screen">
+        
+        {/* Header Navbar */}
+        <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/85 dark:bg-[#18181b]/85 backdrop-blur-md border-b border-zinc-100 dark:border-zinc-900">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm shadow-indigo-500/20">
               #
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-sm tracking-tight text-gray-900 dark:text-white flex items-center gap-1">
-                Tic-Tac-Toe
-                <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-500 animate-pulse" />
-              </span>
-              <span className="text-[10px] text-gray-400 font-semibold tracking-wider uppercase">
-                Premium Duel
+            <div>
+              <div className="flex items-center gap-1">
+                <span className="font-extrabold text-base tracking-tight leading-none text-slate-900 dark:text-white">
+                  Tic-Tac-Toe
+                </span>
+                <Star size={13} className="fill-amber-400 stroke-amber-400 animate-pulse" />
+              </div>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 tracking-wide uppercase">
+                Premium Duel Edition
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Mute button */}
-            <button
-              id="volume-toggle-btn"
-              onClick={handleToggleMute}
-              className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-95 transition-all shadow-sm cursor-pointer flex items-center justify-center"
-              aria-label={isMuted ? 'Unmute sounds' : 'Mute sounds'}
-            >
-              {isMuted ? (
-                <VolumeX className="h-5 w-5 text-rose-500" />
-              ) : (
-                <Volume2 className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-              )}
-            </button>
+          <ThemeToggle
+            darkMode={darkMode}
+            onToggleTheme={() => { setDarkMode(!darkMode); sound.playClick(); }}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(!isMuted)}
+          />
+        </header>
 
-            {/* Dark mode button */}
-            <ThemeToggle darkMode={darkMode} onToggle={() => setDarkMode(!darkMode)} />
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Container */}
-      <main id="app-main" className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-center items-center">
-        {/* Playable Area and Side Settings Panel */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full items-start">
+        {/* Workspace Body content */}
+        <main className="flex-1 px-4 py-6 md:py-8 flex flex-col gap-5 items-center">
           
-          {/* Left panel: Customizer, Settings and Extractor */}
-          <section className="col-span-1 md:col-span-5 space-y-6">
-            <PlayerSettings
-              gameMode={gameMode}
-              aiDifficulty={aiDifficulty}
-              names={names}
-              setGameMode={setGameMode}
-              setAIDifficulty={setAIDifficulty}
-              setNames={setNames}
-              onResetScores={handleResetScores}
-            />
+          <ScoreBoard
+            scores={scores}
+            names={names}
+            gameMode={gameMode}
+            aiDifficulty={aiDifficulty}
+          />
+
+          <PlayerSettings
+            gameMode={gameMode}
+            onModeChange={handleModeToggle => { setGameMode(handleModeToggle); handleResetScores(); }}
+            aiDifficulty={aiDifficulty}
+            onDifficultyChange={handleDifficultyToggle => { setAiDifficulty(handleDifficultyToggle); handleReset(); }}
+            names={names}
+            onNameChange={setNames}
+            onResetMatch={handleResetScores}
+          />
+
+          <StatusCard
+            currentTurn={currentTurn}
+            names={names}
+            gameMode={gameMode}
+            isGameOver={isGameOver}
+            winner={gameState.winner}
+            isDraw={gameState.isDraw}
+            onReset={handleReset}
+          />
+
+          <GameBoard
+            board={board}
+            onCellClick={handleCellClick}
+            winningLine={gameState.line}
+            disabled={isGameOver || isAiThinking}
+            isAiThinking={isAiThinking}
+          />
+
+          {/* Portable Export utility block */}
+          <div className="w-full mt-2">
             <HtmlExporter />
-          </section>
+          </div>
 
-          {/* Right panel: Active Game Arena */}
-          <section className="col-span-1 md:col-span-7 flex flex-col gap-6 items-center">
-            {/* Interactive scoreboard */}
-            <ScoreBoard
-              scores={scores}
-              names={names}
-              gameMode={gameMode}
-              aiDifficulty={aiDifficulty}
-            />
+        </main>
 
-            {/* Active Turn/Banner cards */}
-            <StatusCard
-              currentTurn={currentTurn}
-              winner={winner}
-              isDraw={isDraw}
-              names={names}
-              gameMode={gameMode}
-              onReset={handleReset}
-            />
+        {/* Footer */}
+        <footer className="py-6 text-center border-t border-zinc-100 dark:border-zinc-900">
+          <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase tracking-widest leading-none">
+            Tic-Tac-Toe Game Room • Crafted in Cloud Native Workspace
+          </p>
+        </footer>
 
-            {/* Main Interactive Grid board */}
-            <div className="relative w-full flex justify-center">
-              <GameBoard
-                board={board}
-                onCellClick={handleCellClick}
-                winningLine={winningLine}
-                winner={winner}
-                isDraw={isDraw}
-                disabled={isAiThinking || !!winner || isDraw}
-              />
-
-              {/* Loader placeholder when Bot is finding minimax trees */}
-              {isAiThinking && (
-                <div id="ai-loader-bubble" className="absolute top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-white font-extrabold text-xs px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-bounce">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping"></span>
-                  AI is calculating...
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
-      </main>
-
-      {/* Aesthetic minimalistic footer */}
-      <footer id="app-footer" className="w-full text-center py-6 text-[11px] font-semibold text-gray-400 dark:text-zinc-600 border-t border-gray-100 dark:border-zinc-900 mt-10">
-        Tic-Tac-Toe Game Room &middot; Powered by Antigravity React Core
-      </footer>
+      </div>
     </div>
   );
 }

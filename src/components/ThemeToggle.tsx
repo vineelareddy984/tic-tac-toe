@@ -1,23 +1,52 @@
-import { Sun, Moon } from 'lucide-react';
+import React from 'react';
+import { Sun, Moon, Volume2, VolumeX } from 'lucide-react';
+import { sound } from '../utils/sound';
 
 interface ThemeToggleProps {
   darkMode: boolean;
-  onToggle: () => void;
+  onToggleTheme: () => void;
+  isMuted: boolean;
+  onToggleMute: () => void;
 }
 
-export function ThemeToggle({ darkMode, onToggle }: ThemeToggleProps) {
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({
+  darkMode,
+  onToggleTheme,
+  isMuted,
+  onToggleMute
+}) => {
   return (
-    <button
-      id="theme-toggle-btn"
-      onClick={onToggle}
-      className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-95 transition-all shadow-sm cursor-pointer flex items-center justify-center"
-      aria-label="Toggle theme"
-    >
-      {darkMode ? (
-        <Sun className="h-5 w-5 text-amber-500 animate-pulse" />
-      ) : (
-        <Moon className="h-5 w-5 text-indigo-600" />
-      )}
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        id="btn-toggle-sound"
+        onClick={() => {
+          onToggleMute();
+          if (isMuted) {
+            sound.setMuted(false);
+            sound.playClick();
+          } else {
+            sound.playClick();
+            sound.setMuted(true);
+          }
+        }}
+        className={`p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-all cursor-pointer ${
+          isMuted
+            ? 'bg-red-50 dark:bg-red-950/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-950/40'
+            : 'bg-white dark:bg-zinc-900 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+        }`}
+        title={isMuted ? "Unmute" : "Mute"}
+      >
+        {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+      </button>
+
+      <button
+        id="btn-toggle-theme"
+        onClick={onToggleTheme}
+        className="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all cursor-pointer"
+        title="Toggle dark mode"
+      >
+        {darkMode ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-indigo-600" />}
+      </button>
+    </div>
   );
-}
+};

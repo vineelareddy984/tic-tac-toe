@@ -1,55 +1,61 @@
-import { ScoreState, PlayerNames, GameMode } from '../types';
+import React from 'react';
+import { ScoreState, PlayerNames, GameMode, AIDifficulty } from '../types';
 
 interface ScoreBoardProps {
   scores: ScoreState;
   names: PlayerNames;
   gameMode: GameMode;
-  aiDifficulty: string;
+  aiDifficulty: AIDifficulty;
 }
 
-export function ScoreBoard({ scores, names, gameMode, aiDifficulty }: ScoreBoardProps) {
+export const ScoreBoard: React.FC<ScoreBoardProps> = ({
+  scores,
+  names,
+  gameMode,
+  aiDifficulty
+}) => {
   const oLabel = gameMode === 'ai' ? `AI (${aiDifficulty})` : names.O;
 
   return (
-    <div id="stats-board" className="grid grid-cols-3 gap-3 w-full">
-      {/* Player X Score Card */}
-      <div className="flex flex-col items-center justify-between p-3 rounded-2xl bg-sky-50/70 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/30 transition-all duration-300">
-        <span className="text-xs font-semibold text-sky-700 dark:text-sky-400 capitalize tracking-wide truncate w-full text-center">
-          {names.X || 'Player X'}
+    <div className="grid grid-cols-3 gap-3 w-full">
+      {/* Player X */}
+      <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/30 rounded-2xl p-3.5 text-center flex flex-col justify-between">
+        <span className="text-xs font-bold text-sky-800 dark:text-sky-400 truncate block">
+          {names.X}
         </span>
-        <div className="flex items-baseline gap-1 mt-1">
-          <span className="font-mono text-3xl font-extrabold text-sky-800 dark:text-sky-300">
+        <div className="flex items-baseline justify-center gap-0.5 mt-1">
+          <span className="text-2xl font-black font-mono text-sky-600 dark:text-sky-400">
             {scores.X}
           </span>
-          <span className="text-[10px] uppercase font-bold text-sky-500/70">W</span>
+          <span className="text-[10px] font-bold text-sky-400 dark:text-sky-500 uppercase">W</span>
         </div>
       </div>
 
-      {/* Draws Score Card */}
-      <div className="flex flex-col items-center justify-between p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/50 dark:border-zinc-800/40 transition-all duration-300">
-        <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 tracking-wide text-center">
+      {/* Draws */}
+      <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/60 rounded-2xl p-3.5 text-center flex flex-col justify-between">
+        <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 block">
           Draws
         </span>
-        <div className="flex items-baseline gap-1 mt-1">
-          <span className="font-mono text-3xl font-extrabold text-zinc-700 dark:text-zinc-300">
+        <div className="flex items-baseline justify-center gap-0.5 mt-1">
+          <span className="text-2xl font-black font-mono text-zinc-700 dark:text-zinc-300">
             {scores.draws}
           </span>
-          <span className="text-[10px] uppercase font-bold text-zinc-400">D</span>
+          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">D</span>
         </div>
       </div>
 
-      {/* Player O/AI Score Card */}
-      <div className="flex flex-col items-center justify-between p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 transition-all duration-300">
-        <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 capitalize tracking-wide truncate w-full text-center">
-          {oLabel || 'Player O'}
+      {/* Player O */}
+      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl p-3.5 text-center flex flex-col justify-between">
+        <span className="text-xs font-bold text-amber-800 dark:text-amber-400 truncate block">
+          {oLabel}
         </span>
-        <div className="flex items-baseline gap-1 mt-1">
-          <span className="font-mono text-3xl font-extrabold text-amber-800 dark:text-amber-300">
+        <div className="flex items-baseline justify-center gap-0.5 mt-1">
+          <span className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
             {scores.O}
           </span>
-          <span className="text-[10px] uppercase font-bold text-amber-500/70">W</span>
+          <span className="text-[10px] font-bold text-amber-400 dark:text-amber-500 uppercase">W</span>
         </div>
       </div>
     </div>
   );
-}
+};

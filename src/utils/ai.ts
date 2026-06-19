@@ -1,4 +1,4 @@
-import { BoardState, Symbol } from '../types';
+import { Symbol, AIDifficulty, GameState } from '../types';
 
 const WINNING_COMBOS = [
   [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
@@ -6,12 +6,7 @@ const WINNING_COMBOS = [
   [0, 4, 8], [2, 4, 6]             // diagonals
 ];
 
-// Helper to check winner
-export function checkGameState(board: BoardState): {
-  winner: Symbol | null;
-  line: number[] | null;
-  isDraw: boolean;
-} {
+export function checkGameState(board: (Symbol | null)[]): GameState {
   for (const combo of WINNING_COMBOS) {
     const [a, b, c] = combo;
     if (board[a] && board[a] === board[b] && board[a] === board[c]) {
@@ -23,135 +18,110 @@ export function checkGameState(board: BoardState): {
   return { winner: null, line: null, isDraw };
 }
 
-// Get all empty spots on the board
-function getEmptyIndices(board: BoardState): number[] {
-  return board
-    .map((val, index) => (val === null ? index : null))
-    .filter((val): val is number => val !== null);
+function getEmptyIndices(board: (Symbol | null)[]): number[] {
+  return board.map((cell, idx) => cell === null ? idx : null).filter((v): v is number => v !== null);
 }
 
-// Simple random move selector
-function getRandomMove(board: BoardState): number {
+function getRandomMove(board: (Symbol | null)[]): number {
   const empty = getEmptyIndices(board);
   if (empty.length === 0) return -1;
-  const randomIndex = Math.floor(Math.random() * empty.length);
-  return empty[randomIndex];
+  return empty[Math.floor(Math.random() * empty.length)];
 }
 
-// Minimax algorithm implementation
-function minimax(
-  board: BoardState,
-  depth: number,
-  isMax: boolean,
-  aiSymbol: Symbol,
-  playerSymbol: Symbol
-): { score: number; index: number } {
-  const state = checkGameState(board);
-
-  // Base evaluations
-  if (state.winner === aiSymbol) {
-    return { score: 10 - depth, index: -1 };
-  }
-  if (state.winner === playerSymbol) {
-    return { score: -10 + depth, index: -1 };
-  }
-  if (state.isDraw) {
-    return { score: 0, index: -1 };
-  }
-
-  const emptySpots = getEmptyIndices(board);
-
-  if (isMax) {
-    let bestScore = -Infinity;
-    let bestIndex = -1;
-
-    for (const index of emptySpots) {
-      board[index] = aiSymbol;
-      const result = minimax(board, depth + 1, false, aiSymbol, playerSymbol);
-      board[index] = null; // undo move
-
-      if (result.score > bestScore) {
-        bestScore = result.score;
-        bestIndex = index;
-      }
-    }
-    return { score: bestScore, index: bestIndex };
-  } else {
-    let bestScore = Infinity;
-    let bestIndex = -1;
-
-    for (const index of emptySpots) {
-      board[index] = playerSymbol;
-      const result = minimax(board, depth + 1, true, aiSymbol, playerSymbol);
-      board[index] = null; // undo move
-
-      if (result.score < bestScore) {
-        bestScore = result.score;
-        bestIndex = index;
-      }
-    }
-    return { score: bestScore, index: bestIndex };
-  }
-}
-
-// Find immediate win or immediate block
-function findCrucialMove(board: BoardState, symbolToCheck: Symbol): number {
-  const emptySpots = getEmptyIndices(board);
-  for (const index of emptySpots) {
+function findCrucialMove(board: (Symbol | null)[], symbol: Symbol): number {
+  const empty = getEmptyIndices(board);
+  for (const idx of empty) {
     const nextBoard = [...board];
-    nextBoard[index] = symbolToCheck;
-    const { winner } = checkGameState(nextBoard);
-    if (winner === symbolToCheck) {
-      return index;
+    nextBoard[idx] = symbol;
+    const state = checkGameState(nextBoard);
+    if (state.winner === symbol) {
+      return idx;
     }
   }
   return -1;
 }
 
-// Main function to query the AI move
-export function getAIMove(
-  board: BoardState,
+function minimax(
+  board: (Symbol | null)[],
+  depth: number,
+  isMax: boolean,
   aiSymbol: Symbol,
-  difficulty: 'easy' | 'medium' | 'hard'
+  opponentSymbol: Symbol
+): { score: number; idx: number } {
+  const state = checkGameState(board);
+
+  if (state.winner === aiSymbol) return { score: 10 - depth, idx: -1 };
+  if (state.winner === opponentSymbol) return { score: -10 + depth, idx: -1 };
+  if (state.isDraw) return { score: 0, idx: -1 };
+
+  const empty = getEmptyIndices(board);
+
+  if (isMax) {
+    let bestScore = -Infinity;
+    let bestIdx = -1;
+
+    for (const idx of empty) {
+      board[idx] = aiSymbol;
+      const { score } = minimax(board, depth + 1, false, aiSymbol, opponentSymbol);
+      board[idx] = null;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx = idx;
+      }
+    }
+    return { score: bestScore, idx: bestIdx };
+  } else {
+    let bestScore = Infinity;
+    let bestIdx = -1;
+
+    for (const idx of empty) {
+      board[idx] = opponentSymbol;
+      const { score } = minimax(board, depth + 1, true, aiSymbol, opponentSymbol);
+      board[idx] = null;
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestIdx = idx;
+      }
+    }
+    return { score: bestScore, idx: bestIdx };
+  }
+}
+
+export function getAIMove(
+  board: (Symbol | null)[],
+  aiSymbol: Symbol,
+  difficulty: AIDifficulty
 ): number {
-  const playerSymbol: Symbol = aiSymbol === 'X' ? 'O' : 'X';
-  const emptySpots = getEmptyIndices(board);
+  const opponentSymbol = aiSymbol === 'X' ? 'O' : 'X';
+  const empty = getEmptyIndices(board);
 
-  if (emptySpots.length === 0) return -1;
+  if (empty.length === 0) return -1;
 
-  // Easy mode: Completely random
   if (difficulty === 'easy') {
     return getRandomMove(board);
   }
 
-  // Medium mode: 60% smart (immediate wins/blocks or Center), 40% random
   if (difficulty === 'medium') {
-    const shouldBeSmart = Math.random() < 0.6;
-    if (shouldBeSmart) {
-      // 1. Try to win immediately
+    const isSmart = Math.random() < 0.6;
+    if (isSmart) {
       const winMove = findCrucialMove(board, aiSymbol);
       if (winMove !== -1) return winMove;
 
-      // 2. Try to block player from winning immediately
-      const blockMove = findCrucialMove(board, playerSymbol);
+      const blockMove = findCrucialMove(board, opponentSymbol);
       if (blockMove !== -1) return blockMove;
 
-      // 3. Play center if available
       if (board[4] === null) return 4;
     }
     return getRandomMove(board);
   }
 
-  // Hard mode: Minimax (unbeatable)
-  // First move optimization for center / corner if board is empty to save computation,
-  // though minimax is extremely fast.
-  if (emptySpots.length === 9) {
-    // If starting first, take center or a random corner
+  if (empty.length === 9) {
     const preferred = [4, 0, 2, 6, 8];
-    const randomIndex = Math.floor(Math.random() * preferred.length);
-    return preferred[randomIndex];
+    return preferred[Math.floor(Math.random() * preferred.length)];
   }
 
-  const { index } = minimax([...board], 0, true, aiSymbol, playerSymbol);
-  return index;
+  const result = minimax([...board], 0, true, aiSymbol, opponentSymbol);
+  return result.idx;
 }
